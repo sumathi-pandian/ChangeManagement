@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProxyEndpoint name="default">
+  <Description>BW SmartyStreet 1.0</Description>
+  <Flows>
+    <Flow name="getAddress">
+      <Condition>(proxy.pathsuffix MatchesPath "/address") and (request.verb = "GET")</Condition>
+      <Description>address validation</Description>
+      <Request>
+        <Step>
+          <Name>0-SF-ValidateCORS</Name>
+        </Step>
+        <Step>
+          <Name>0-SF-ValidateXSS</Name>
+        </Step>
+        <Step>
+          <Name>0-SF-ValidateHeaders</Name>
+        </Step>
+        <Step>
+          <Name>0-SF-ValidateQueryParams</Name>
+        </Step>
+      </Request>
+      <Response/>
+    </Flow>
+    <Flow name="METHOD_NOT_ALLOWED">
+      <Condition>((proxy.pathsuffix MatchesPath "/address") and (request.verb != "GET"))</Condition>
+      <Request>
+        <Step>
+          <Name>4-JS-MethodNotAllowed</Name>
+        </Step>
+      </Request>
+    </Flow>
+    <Flow name="RESOURCE_NOT_FOUND">
+      <Request>
+        <Step>
+          <Name>4-JS-ResourceNotFound</Name>
+        </Step>
+      </Request>
+    </Flow>
+  </Flows>
+  <HTTPProxyConnection>
+    <BasePath>/smartyStreet/v1</BasePath>
+    <VirtualHost>default</VirtualHost>
+    <VirtualHost>secure</VirtualHost>
+  </HTTPProxyConnection>
+  <FaultRules>
+    <FaultRule name="all">
+      <Step>
+        <Name>0-SF-HandleFaults</Name>
+      </Step>
+      <Step>
+        <Name>4-JS-AssignLogPoint</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-LogContent</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ApigeeAnalytics</Name>
+      </Step>
+    </FaultRule>
+  </FaultRules>
+  <PreFlow name="PreFlow">
+    <Request>
+      <Step>
+        <Name>0-SF-CheckTransactionId</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ValidatePayloadSize</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ApplySpikeArrest</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ApplyQuota</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ValidateRequest</Name>
+        <Condition>(request.verb = "POST")</Condition>
+      </Step>
+      <Step>
+        <Name>4-JS-AssignLogPoint</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-LogContent</Name>
+      </Step>
+    </Request>
+    <Response/>
+  </PreFlow>
+  <PostFlow name="PostFlow">
+    <Request/>
+    <Response>
+      <Step>
+        <Name>0-SF-SetOutHeaders</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ValidateResponse</Name>
+      </Step>
+      <Step>
+        <Name>4-JS-AssignLogPoint</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-LogContent</Name>
+      </Step>
+      <Step>
+        <Name>0-SF-ApigeeAnalytics</Name>
+      </Step>
+    </Response>
+  </PostFlow>
+  <RouteRule name="default">
+    <Condition>(currentFlowName != "RESOURCE_NOT_FOUND") or (currentFlowName != "METHOD_NOT_ALLOWED")</Condition>
+    <TargetEndpoint>default</TargetEndpoint>
+  </RouteRule>
+  <RouteRule name="nullTarget">
+    </RouteRule>
+  <RouteRule name="nullTarget">
+    </RouteRule>
+</ProxyEndpoint>
